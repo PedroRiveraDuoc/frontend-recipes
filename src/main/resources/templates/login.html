@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.0/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-8">
+        <h2 class="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h2>
+        <form id="loginForm" class="max-w-md mx-auto">
+            <div class="mb-4">
+                <label for="username" class="block">Nombre de usuario</label>
+                <input type="text" id="username" class="w-full p-2 border rounded" placeholder="Ingresa tu usuario"
+                    autocomplete="username" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="block">Contraseña</label>
+                <input type="password" id="password" class="w-full p-2 border rounded"
+                    placeholder="Ingresa tu contraseña" autocomplete="current-password" required>
+            </div>
+            <button type="button" id="loginButton" class="w-full bg-blue-500 text-white py-2 rounded">Ingresar</button>
+            <script defer>
+                document.getElementById("loginButton").addEventListener("click", () => {
+                    console.log("Botón de login presionado");
+                    login();
+                });
+            </script>
+        </form>
+        <p id="statusMessage" class="text-center mt-4"></p>
+    </div>
+
+    <script defer>
+        console.log("Inicio de script...");
+
+        async function login() {
+            console.log("Entrando a la función login");
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const statusMessage = document.getElementById('statusMessage');
+
+            console.log("Username ingresado:", username);
+            console.log("Password ingresado:", password);
+
+            if (!username || !password) {
+                console.log("Campos vacíos detectados.");
+                statusMessage.textContent = 'Por favor, completa todos los campos.';
+                statusMessage.className = 'text-red-500 text-center mt-4';
+                return;
+            }
+
+            statusMessage.textContent = 'Iniciando sesión...';
+            statusMessage.className = 'text-blue-500 text-center mt-4';
+
+            try {
+                console.log("Enviando solicitud de login al backend...");
+                const response = await fetch('http://localhost:8081/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+
+                console.log("Estado de la respuesta:", response.status);
+
+                if (response.status === 302) {
+                    console.log("Redirección detectada a:", response.headers.get('Location'));
+                    statusMessage.textContent = 'Redirección inesperada. Verifica tu configuración de seguridad.';
+                    statusMessage.className = 'text-red-500 text-center mt-4';
+                    return;
+                }
+
+                if (response.status === 401) {
+                    console.log("Credenciales incorrectas.");
+                    statusMessage.textContent = 'Credenciales incorrectas, intenta nuevamente.';
+                    statusMessage.className = 'text-red-500 text-center mt-4';
+                    return;
+                }
+
+                const data = await response.json();
+                console.log("Datos recibidos:", data);
+
+                if (data && data.token) {
+                    console.log("Token recibido:", data.token);
+                    localStorage.setItem('token', data.token);
+                    console.log("Token guardado en localStorage.");
+                    statusMessage.textContent = 'Inicio de sesión exitoso. Redirigiendo...';
+                    statusMessage.className = 'text-green-500 text-center mt-4';
+                    setTimeout(() => window.location.href = '/home', 1000);
+                } else {
+                    console.log("No se recibió token en la respuesta.");
+                    statusMessage.textContent = 'Token no recibido. Verifica tu configuración.';
+                    statusMessage.className = 'text-red-500 text-center mt-4';
+                }
+            } catch (error) {
+                console.error("Error en la solicitud:", error);
+                statusMessage.textContent = 'No se pudo conectar con el servidor. Intenta más tarde.';
+                statusMessage.className = 'text-red-500 text-center mt-4';
+            }
+        }
+
+        console.log("Fin de script.");
+
+
+    </script>
+</body>
+
+</html>
